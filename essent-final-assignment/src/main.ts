@@ -35,7 +35,7 @@ app.post('/accounts', (req, res) => {
       }
       accounts.push(generateAccount);
       res.status(200).send({
-        message: accounts
+         accounts
       });
     }
     else{
@@ -47,6 +47,35 @@ app.post('/accounts', (req, res) => {
   }
   catch (error){
     res.status(400).send({error});
+  }
+});
+
+/* Get all accounts API */
+app.get('/accounts', (req, res) => {
+  res.status(201).send(
+    {
+      accounts
+    }
+  )
+});
+
+/* Get an account based on id API */
+app.get('/accounts/:accountid', (req, res) => {
+  const account: Account[] = accounts.filter((account) => account.id === req.params.accountid);
+  console.log(account)
+  try{
+    if (account.length >= 1){
+      res.status(200).send({account})
+    }
+    else{
+      const err = new Error();
+      err.name = 'Not Found';
+      err.message = 'Enter a valid accountId'
+      throw err;
+    }
+  }
+  catch (error){
+    res.status(404).send({error});
   }
 });
 
