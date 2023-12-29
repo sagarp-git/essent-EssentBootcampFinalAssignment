@@ -224,6 +224,31 @@ app.post('/accounts/:accountId/purchases',(req,res) => {
 
 });
 
+app.post('/products',(req,res) => {
+  try{
+    if (req.body['title']){
+      const inMProduct: Product = {
+        id: uuidv4(),
+        title: req.body['title'],
+        description: req.body['description'],
+        price: req.body['price'],
+        stock: req.body['stock']
+      }
+      products.push(inMProduct);
+      res.status(201).send({id: inMProduct.id, title:inMProduct.title,description:inMProduct.description,price:inMProduct.price,stock:inMProduct.stock});
+      console.log(products)
+    }
+    else{
+      const err = new Error();
+      err.name = 'Invalid Input';
+      err.message = 'Invalid Input';
+      throw err;
+    }
+  }
+  catch(error){
+    res.status(400).send({error});
+  }
+});
 
 app.listen(port, host, () => {
   console.log(`[ ready ] http://${host}:${port}`);
