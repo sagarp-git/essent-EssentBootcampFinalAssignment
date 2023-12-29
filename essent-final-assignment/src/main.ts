@@ -1,7 +1,7 @@
 import { error } from 'console';
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-
+import { products,Product } from './products';
 
 const host = process.env.HOST ?? 'localhost';
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
@@ -80,32 +80,6 @@ app.get('/accounts/:accountid', (req, res) => {
 });
 
 /*Part B: Purchasing Products*/
-/*Products*/
-
-export const products = [
-  {
-    id: "solar",
-    title: "Solar Panel",
-    description: "Super duper Essent solar panel",
-    stock: 10,
-    price: 750,
-  },
-  {
-    id: "insulation",
-    title: "Insulation",
-    description: "Cavity wall insulation",
-    stock: 10,
-    price: 2500,
-  },
-  {
-    id: "heatpump",
-    title: "Awesome Heatpump",
-    description: "Hybrid heat pump",
-    stock: 3,
-    price: 5000,
-  },
-];
-
 /*deposit interface and variables*/
 
 interface Deposit {
@@ -127,20 +101,31 @@ const updateAccountBalance = (accountId: string, newBalance: number): void => {
   const accountIdIndex = accounts.findIndex(account => account.id === accountId);
   if (accountIdIndex !== -1){
     accounts[accountIdIndex].balance = newBalance;
-    console.log(`accountId - ${accountId} balance is updated`)
+    console.log(`accountId - ${accountId} balance is updated ${accounts[accountIdIndex].balance}` )
   }
   else {
     console.log(`accountId - ${accountId} not found`)
   }
 }
 
-/*register the deposit for an account*/
+const simulatedDayForAccount = (accountId: string, NewsimulatedDay: number): void => {
+  const accountIdIndex = accounts.findIndex(account => account.id === accountId);
+  if (accountIdIndex !== -1){
+    accounts[accountIdIndex].lastPurchasedDate = NewsimulatedDay;
+    console.log(`accountId - ${accountId} simulatedDay is updated - ${NewsimulatedDay}`)
+  }
+  else {
+    console.log(`accountId - ${accountId} not found`)
+  }
+}
+
+/*register/update the deposit for an account*/
 app.post('/accounts/:accountId/deposits',(req, res) => {
   try{
     if (accounts.length > 0){
       const inmaccount = accounts.find(account => account.id === req.params.accountId);
-      console.log('in memory account: ', inmaccount);
-      console.log('sim-day: ', req.headers['simulated-day']);
+      // console.log('in memory account: ', inmaccount);
+      // console.log('sim-day: ', req.headers['simulated-day']);
       if (inmaccount){
         const inmdepositList: depositType[] = [{
           depositId: uuidv4(),
@@ -148,10 +133,11 @@ app.post('/accounts/:accountId/deposits',(req, res) => {
         }];
         const inmdeposit = deposit.find(deposit => deposit.accountId === req.params.accountId);
         if (inmdeposit) {
-          const sumOfOldDeposit: number = Number(inmdeposit.deposits.reduce((sum,deposit) => sum+deposit.amount,0));
-          const inmTotalDeposit: number = Number(sumOfOldDeposit + req.body['amount']);
-          inmdeposit.totalDeposit = inmTotalDeposit
+          console.log('balance before update: ', inmaccount.balance);
+          const inmTotalDeposit: number = Number(inmaccount.balance + req.body['amount']);
+          inmdeposit.totalDeposit = inmTotalDeposit;
           inmdeposit.deposits.push(inmdepositList[0]);
+          updateAccountBalance(req.params.accountId, inmTotalDeposit);
         }else{
           const inmNewDeposit: Deposit = {
             accountId: req.params.accountId,
@@ -160,9 +146,10 @@ app.post('/accounts/:accountId/deposits',(req, res) => {
             deposits: inmdepositList
           };
           deposit.push(inmNewDeposit);
+          updateAccountBalance(req.params.accountId, req.body['amount']);
         }
         const filterDeposit: Deposit = deposit.find(deposit => deposit.accountId === req.params.accountId)
-        res.status(200).send({id: req.params.accountId,name:inmaccount.name, balance: filterDeposit.totalDeposit});
+        res.status(201).send({id: req.params.accountId,name:inmaccount.name, balance: filterDeposit.totalDeposit});
         
       } 
       else{
@@ -180,6 +167,59 @@ app.post('/accounts/:accountId/deposits',(req, res) => {
   catch(error){
     console.error('Error Message:',error.message);
     res.status(400).send({error: error.message})
+  }
+
+});
+
+/*purchase product api*/
+app.post('/accounts/:accountId/purchases',(req,res) => {
+  try{
+    if (accounts.length>0){
+      let productPrice:number = 0;
+      let balance: number =0;
+      let stock: number = 0;
+      const inMAccount = accounts.filter(account => account.id === req.params.accountId);
+      const inMProduct = products.filter(product => product.id === req.body['productId']);
+      if (inMAccount.length>0){
+        balance = inMAccount[0].balance;
+      }
+      if (inMProduct.length>0){
+        productPrice=inMProduct[0].price
+      }
+      if (inMProduct.length>0){
+        stock=inMProduct[0].stock
+      }
+      console.log('balance: ', balance,' productPrice: ',productPrice,' stock: ',stock)
+      if(inMAccount.length === 0 || inMProduct.length ===0 ){
+        res.status(400).send({message: 'Invalid input'});
+      }
+      else if (Number(req.headers['simulated-day']) < inMAccount[0].lastPurchasedDate){
+        res.status(400).send({message: 'Simulated day illegal'})
+      }
+      else if (stock >0 && balance>=productPrice){
+        inMProduct[0].stock = inMProduct[0].stock-1;
+        //inMAccount[0].balance = inMAccount[0].balance - productPrice;
+        updateAccountBalance(req.params.accountId, inMAccount[0].balance - productPrice);
+        //inMAccount[0].lastPurchasedDate = req.header['simulated-day'];
+        simulatedDayForAccount(req.params.accountId, Number(req.headers['simulated-day']));
+        res.status(201).send({message: 'Success'})
+      }
+      else if (balance < productPrice){
+        res.status(409).send({message: 'Not enough funds'})
+      }
+      else if (stock <= 0){
+        res.status(409).send({message: 'Not enough stock'})
+      }
+    }
+    else{
+      const err = new Error();
+      err.name = 'Error';
+      err.message= 'Unknown Error';
+      throw err;
+    }
+  }
+  catch(error) {
+    res.status(400).send({message: error})
   }
 
 });
