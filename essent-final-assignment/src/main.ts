@@ -1,21 +1,13 @@
 import { error } from 'console';
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { products,Product } from './products';
+import { products,Product,Account,Deposit, depositType } from './utilities';
 
 const host = process.env.HOST ?? 'localhost';
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-
 const app = express();
 app.use(express.json());
-
-interface Account {
-  id: string;
-  name: string;
-  balance: number;
-  lastPurchasedDate: number;
-}
 
 const accounts: Account[] = [];
 
@@ -82,21 +74,10 @@ app.get('/accounts/:accountid', (req, res) => {
 /*Part B: Purchasing Products*/
 /*deposit interface and variables*/
 
-interface Deposit {
-  accountId: string;
-  simulatedDay: number;
-  totalDeposit: number;
-  deposits: depositType[]
-}
-
-type depositType = {
-  depositId: string;
-  amount: number
-}
-
 const deposit: Deposit[] = [];
 let simulatedDay: number;
 
+/*update account balance function*/
 const updateAccountBalance = (accountId: string, newBalance: number): void => {
   const accountIdIndex = accounts.findIndex(account => account.id === accountId);
   if (accountIdIndex !== -1){
@@ -108,6 +89,7 @@ const updateAccountBalance = (accountId: string, newBalance: number): void => {
   }
 }
 
+/*update simulated day function*/
 const simulatedDayForAccount = (accountId: string, NewsimulatedDay: number): void => {
   const accountIdIndex = accounts.findIndex(account => account.id === accountId);
   if (accountIdIndex !== -1){
@@ -198,9 +180,7 @@ app.post('/accounts/:accountId/purchases',(req,res) => {
       }
       else if (stock >0 && balance>=productPrice){
         inMProduct[0].stock = inMProduct[0].stock-1;
-        //inMAccount[0].balance = inMAccount[0].balance - productPrice;
         updateAccountBalance(req.params.accountId, inMAccount[0].balance - productPrice);
-        //inMAccount[0].lastPurchasedDate = req.header['simulated-day'];
         simulatedDayForAccount(req.params.accountId, Number(req.headers['simulated-day']));
         res.status(201).send({message: 'Success'})
       }
@@ -224,6 +204,7 @@ app.post('/accounts/:accountId/purchases',(req,res) => {
 
 });
 
+/* Add Product API */
 app.post('/products',(req,res) => {
   try{
     if (req.body['title']){
@@ -247,6 +228,31 @@ app.post('/products',(req,res) => {
   }
   catch(error){
     res.status(400).send({error});
+  }
+});
+
+/*Get Products*/
+
+app.get('/products',(req,res) => {
+  res.status(200).send(products)
+});
+
+/*Get Products by Product id*/
+
+app.get('/products/:productId',(req,res) => {
+  try{
+    const filterProductById: Product = products.filter(product => product.id === req.params.productId)[0]; /*filter product by product id from the request*/
+    if (filterProductById){
+      res.status(200).send(filterProductById)
+    }
+    else{
+      const err = new Error();
+      err.name = 'Not Found';
+      err.message = 'Product Not Found';
+      throw err;
+    }
+  }catch (error){
+    res.status(404).send(error)
   }
 });
 

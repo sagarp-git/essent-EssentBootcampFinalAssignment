@@ -1,3 +1,10 @@
+interface Account {
+  id: string;
+  name: string;
+  balance: number;
+  lastPurchasedDate: number;
+}
+
 interface Product{
     id: string,
     title: string,
@@ -30,4 +37,16 @@ const products : Product[] = [
     },
   ];
 
-  export { Product, products };
+  interface Deposit {
+    accountId: string;
+    simulatedDay: number;
+    totalDeposit: number;
+    deposits: depositType[]
+  }
+  
+  type depositType = {
+    depositId: string;
+    amount: number
+  }
+
+  export { Product, products , Account, Deposit, depositType};
