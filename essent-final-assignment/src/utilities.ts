@@ -5,6 +5,33 @@ interface Account {
   lastPurchasedDate: number;
 }
 
+const accounts: Account[] = [];
+
+/*update account balance function*/
+const updateAccountBalance = (accountId: string, newBalance: number): void => {
+  const accountIdIndex = accounts.findIndex(account => account.id === accountId);
+  if (accountIdIndex !== -1){
+    accounts[accountIdIndex].balance = newBalance;
+    console.log(`accountId - ${accountId} balance is updated ${accounts[accountIdIndex].balance}` )
+  }
+  else {
+    console.log(`accountId - ${accountId} not found`)
+  }
+}
+
+/*update simulated day function*/
+const simulatedDayForAccount = (accountId: string, NewsimulatedDay: number): void => {
+  const accountIdIndex = accounts.findIndex(account => account.id === accountId);
+  if (accountIdIndex !== -1){
+    accounts[accountIdIndex].lastPurchasedDate = NewsimulatedDay;
+    console.log(`accountId - ${accountId} simulatedDay is updated - ${NewsimulatedDay}`)
+  }
+  else {
+    console.log(`accountId - ${accountId} not found`)
+  }
+}
+
+/*Product interface*/
 interface Product{
     id: string,
     title: string,
@@ -12,7 +39,8 @@ interface Product{
     stock: number,
     price: number
   }
-  
+
+/* Products details which will be used in the main process*/
 const products : Product[] = [
     {
       id: "solar",
@@ -37,16 +65,19 @@ const products : Product[] = [
     },
   ];
 
+  /*Deposit interface*/
   interface Deposit {
     accountId: string;
     simulatedDay: number;
     totalDeposit: number;
     deposits: depositType[]
   }
-  
+  /*Deposittype used in Deposit interface*/
   type depositType = {
     depositId: string;
     amount: number
   }
 
-  export { Product, products , Account, Deposit, depositType};
+  const deposit: Deposit[] = [];
+
+  export { Product, products , Account, accounts, Deposit,deposit, depositType,updateAccountBalance,simulatedDayForAccount};

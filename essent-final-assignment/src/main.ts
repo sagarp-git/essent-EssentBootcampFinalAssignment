@@ -1,15 +1,13 @@
 import { error } from 'console';
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { products,Product,Account,Deposit, depositType } from './utilities';
+import { products,Product,Account,accounts,Deposit,deposit, depositType,updateAccountBalance,simulatedDayForAccount } from './utilities';
 
 const host = process.env.HOST ?? 'localhost';
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 const app = express();
 app.use(express.json());
-
-const accounts: Account[] = [];
 
 /*Part A: Accounts*/
 /* Add a new account with name */
@@ -72,36 +70,9 @@ app.get('/accounts/:accountid', (req, res) => {
 });
 
 /*Part B: Purchasing Products*/
-/*deposit interface and variables*/
 
-const deposit: Deposit[] = [];
-let simulatedDay: number;
-
-/*update account balance function*/
-const updateAccountBalance = (accountId: string, newBalance: number): void => {
-  const accountIdIndex = accounts.findIndex(account => account.id === accountId);
-  if (accountIdIndex !== -1){
-    accounts[accountIdIndex].balance = newBalance;
-    console.log(`accountId - ${accountId} balance is updated ${accounts[accountIdIndex].balance}` )
-  }
-  else {
-    console.log(`accountId - ${accountId} not found`)
-  }
-}
-
-/*update simulated day function*/
-const simulatedDayForAccount = (accountId: string, NewsimulatedDay: number): void => {
-  const accountIdIndex = accounts.findIndex(account => account.id === accountId);
-  if (accountIdIndex !== -1){
-    accounts[accountIdIndex].lastPurchasedDate = NewsimulatedDay;
-    console.log(`accountId - ${accountId} simulatedDay is updated - ${NewsimulatedDay}`)
-  }
-  else {
-    console.log(`accountId - ${accountId} not found`)
-  }
-}
-
-/*register/update the deposit for an account*/
+/*register/update the deposit for an account. This API will update and maintain the depost history and total deposit amount. 
+During the successful request processing, this api will also update the balance so the the customer can use the deposit to place an order*/
 app.post('/accounts/:accountId/deposits',(req, res) => {
   try{
     if (accounts.length > 0){
@@ -150,10 +121,10 @@ app.post('/accounts/:accountId/deposits',(req, res) => {
     console.error('Error Message:',error.message);
     res.status(400).send({error: error.message})
   }
-
 });
 
-/*purchase product api*/
+/*purchase product API- This is an order API. We can use this to place an order and during successful request processing. 
+The API will update the balance and stock in the account and products variables*/
 app.post('/accounts/:accountId/purchases',(req,res) => {
   try{
     if (accounts.length>0){
@@ -201,10 +172,9 @@ app.post('/accounts/:accountId/purchases',(req,res) => {
   catch(error) {
     res.status(400).send({message: error})
   }
-
 });
 
-/* Add Product API */
+/* Add Product API - This API will add products to products variable */
 app.post('/products',(req,res) => {
   try{
     if (req.body['title']){
@@ -217,7 +187,7 @@ app.post('/products',(req,res) => {
       }
       products.push(inMProduct);
       res.status(201).send({id: inMProduct.id, title:inMProduct.title,description:inMProduct.description,price:inMProduct.price,stock:inMProduct.stock});
-      console.log(products)
+      // console.log(products)
     }
     else{
       const err = new Error();
